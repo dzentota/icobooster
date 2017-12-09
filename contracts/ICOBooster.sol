@@ -4,13 +4,18 @@ pragma solidity ^0.4.4;
 //https://pastebin.com/BKxwsy59
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
+import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
 
 
 /**
 */
 contract ICOBooster is Ownable {
     using SafeMath for uint256;
+
     uint8 public  FEE = 1;
+    uint8 public constant decimals = 18;
+    uint256 private constant UNIT = 10 ** uint256(decimals);
+
     address public owner;
 
     enum State {Active, Refunding, Closed}
@@ -20,11 +25,12 @@ contract ICOBooster is Ownable {
         uint256 startTime;
         // end timestamp where investments are allowed (inclusive)
         uint256 endTime;
+        ERC20 token;
         //beneficiary
         address beneficiary;
-        //soft cap in tokens
+        //soft cap in wei
         uint cap;
-        //hard cap in tokens
+        //hard cap in wei
         uint hardCap;
         //minimal investment in Wei
         uint minInvestment;
@@ -32,16 +38,12 @@ contract ICOBooster is Ownable {
         address wallet;
         //how much money can be payed from one address (could be set by ICO)
         uint256 oneAddressLimit;
-        //funders index
-        address[] funderIndex;
-        // how many token units a buyer gets per wei
-        uint256 rate;
         // raised in wei
         uint256 weiRaised;
         // Amount of tokens that were sold
-        uint256 tokensSold;
+//        uint256 tokensSold;
         // Investor contributions
-        mapping(address => uint256) balances;
+        mapping (address => uint256) balances;
         mapping (address => uint256) tokens;
         uint index;
         State state;
@@ -59,7 +61,7 @@ contract ICOBooster is Ownable {
         return (userIndex[campaigns[campaignId].index] == campaignId);
     }
 
-    event LogNewCampaign(address indexed campaignId, uint index, uint startTime, uint endTime, uint rate, uint256 minInvestment, uint256 cap, uint hardCap, address tokenContactAddress);
+    event LogNewCampaign(address indexed campaignId, uint index, uint startTime, uint endTime, uint256 minInvestment, uint256 cap, uint hardCap, address crowdSaleAddress, address tokenContactAddress);
 
     event LogInvestment(uint campaignId, address indexed funder, uint256 value, uint256 tokensAmount);
 
@@ -69,31 +71,29 @@ contract ICOBooster is Ownable {
         owner = _owner;
     }
 
-    function newCampaign(uint256 _campaignId, uint256 _startTime, uint256 _endTime, uint256 _rate, uint256 _minInvestment, uint256 _cap, uint256 _hardCap, uint256 _oneAddressLimit, address _wallet, address _crowdSaleAddress) onlyOwner returns (uint index) {
+    function newCampaign(uint256 _campaignId, uint256 _startTime, uint256 _endTime, uint256 _minInvestment, uint256 _cap, uint256 _hardCap, uint256 _oneAddressLimit, address _wallet, address _crowdSaleAddress, address _tokenAddress) onlyOwner returns (uint index) {
         require(_startTime > now + 10 minutes);
         require(_endTime > _startTime);
-        require(_rate > 0);
         require(_minInvestment > 0);
-        require(_cap > 0);
+        require(_cap > _minInvestment);
         require(_hardCap >= _cap);
         require(_crowdSaleAddress != address(0));
         require(_wallet != address(0));
 
         campaigns[_campaignId].startTime = _startTime;
         campaigns[_campaignId].endTime = _endTime;
-        campaigns[_campaignId].cap = _cap;
-        campaigns[_campaignId].hardCap = _hardCap;
+        campaigns[_campaignId].cap = _cap * UNIT;
+        campaigns[_campaignId].hardCap = _hardCap * UNIT;
         campaigns[_campaignId].minInvestment = _minInvestment;
         campaigns[_campaignId].beneficiary = _crowdSaleAddress;
+        campaigns[_campaignId].token = ERC20(_tokenAddress);
         campaigns[_campaignId].state = State.Active;
         campaigns[_campaignId].weiRaised = 0;
-        campaigns[_campaignId].rate = _rate;
-        campaigns[_campaignId].wallet = _wallet;
+        campaigns[_campaignId].wallet = new RefundVault(_wallet);
         campaigns[_campaignId].oneAddressLimit = _oneAddressLimit;
 
         campaigns[_campaignId].index = campaignIndex.push(_campaignId) - 1;
-
-        LogNewCampaign(_campaignId, campaigns[_campaignId].index, _startTime, _endTime, _rate, _minInvestment, _cap, _hardCap, _crowdSaleAddress);
+        LogNewCampaign(_campaignId, campaigns[_campaignId].index, _startTime, _endTime,  _minInvestment, _cap, _hardCap, _crowdSaleAddress, _tokenAddress);
 
         return campaignIndex.length - 1;
     }
@@ -106,34 +106,34 @@ contract ICOBooster is Ownable {
         uint256 weiAmount = msg.value;
         uint256 returnToSender = 0;
 
-        // Retrieve the current token rate
-        uint256 rate = getRate(campaignId);
+//        // Retrieve the current token rate
+//        uint256 rate = getRate(campaignId);
         // Calculate token amount to be transferred
-        uint256 tokens = weiAmount.mul(rate);
+//        uint256 tokens = weiAmount.mul(rate);
 
         Campaign storage c = campaigns[campaignId];
         // Distribute only the remaining tokens if final contribution exceeds hard cap
-        if(c.tokensSold.add(tokens) > c.hardCap) {
-            tokens = c.hardCap.sub(tokensSold);
-            weiAmount = tokens.div(rate);
-            returnToSender = msg.value.sub(weiAmount);
+        if(c.weiRaised.add(weiAmount) > c.hardCap) {
+            uint256 diff = c.hardCap.sub(c.weiRaised);
+            returnToSender = msg.value.sub(diff);
         }
 
         // update state
-        c.tokensSold = c.tokensSold.add(tokens);
+//        c.tokensSold = c.tokensSold.add(tokens);
+        c.weiRaised = c.weiRaised.add(weiAmount);
 
         // update balance
         c.balances[msg.sender] = balances[msg.sender].add(weiAmount);
 
         LogInvestment(msg.sender, campaignId, weiAmount, tokens);
         // Forward funds
-        c.wallet.transfer(weiAmount);
+        c.wallet.deposit.value(weiAmount)(msg.sender);
+//        c.wallet.transfer(weiAmount);
 
         // Return funds that are over hard cap
         if(returnToSender > 0) {
             msg.sender.transfer(returnToSender);
         }
-
     }
 
     // @return true if the transaction can buy tokens
@@ -145,13 +145,13 @@ contract ICOBooster is Ownable {
         return withinPeriod && nonZeroPurchase && greaterThanMinInvestment && withinHardCap;
     }
 
-    /**
-     * @dev Internal function that is used to determine the current rate for token / ETH conversion
-     * @return The current token rate
-     */
-    function getRate(campaignId) internal constant returns (uint256) {
-        return campaigns[campaignId].rate;
-    }
+//    /**
+//     * @dev Internal function that is used to determine the current rate for token / ETH conversion
+//     * @return The current token rate
+//     */
+//    function getRate(campaignId) internal constant returns (uint256) {
+//        return campaigns[campaignId].rate;
+//    }
 
     // @return true if campaign has ended or cap is reached
     function hasEnded(uint campaignId) public view returns (bool) {
@@ -161,22 +161,34 @@ contract ICOBooster is Ownable {
 
     function checkGoalReached(uint campaignId) returns (bool reached) {
         Campaign storage c = campaigns[campaignId];
-        if (c.weiRaised * 1 ether < c.ethToRaise)
+        if (c.weiRaised < c.cap)
         return false;
         uint amount = c.weiRaised;
         c.weiRaised = 0;
         //increase gas ???
-        c.token.transfer(amount);
+
+        c.beneficiary.transfer(amount);
         return true;
     }
 
-    /**
-    * Transfer tokens from approve() pool to the buyer.
-    *
-    * Use approve() given to this crowdsale to distribute the tokens.
-    */
-    function assignTokens(uint campaignId, address receiver, uint tokenAmount) internal {
-        if (!campaigns[campaignId].token.transferFrom(campaignId, receiver, tokenAmount))
-        throw;
+    function getTokens(uint256 campaignId) public returns (bool) {
+        Campaign storage c = campaigns[campaignId];
+        require(c.balances[msg.sender] > 0);
+        uint256 tokens = calculateTokens(campaignId, msg.sender);
+        c.balances[msg.sender] = 0;
+        c.tokens = c.tokens.add(tokens);
+        /////
+        campaigns[campaignId].token.transfer(msg.sender, tokens);
+    }
+
+    function calculateTokens(uint256 campaignId, address funder) internal returns (uint256 tokens)
+    {
+        uint256 totalTokens = campaigns[campaignId].token.balanceOf(this);
+        return campaigns[campaignId].weiRaised.div(totalTokens).mul(campaigns[campaignId].balances[funder]);
+    }
+
+    function getRefund(uint256 campaignId)
+    {
+
     }
 }
