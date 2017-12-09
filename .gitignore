@@ -1,4 +1,11 @@
-build
-node_modules
-.idea
-npm-debug.log
+build/
+node_modules/
+.DS_Store
+.node-xmlhttprequest-sync-*
+.idea/*
+
+coverage/
+coverageEnv/
+allFiredEvents
+coverage.json
+scTopics
