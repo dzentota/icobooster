@@ -1,7 +1,5 @@
 pragma solidity ^0.4.4;
 
-
-//https://pastebin.com/BKxwsy59
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
@@ -168,8 +166,6 @@ contract ICOBooster is Ownable {
         return false;
         uint amount = c.weiRaised;
         c.weiRaised = 0;
-        //increase gas ???
-
         c.beneficiary.transfer(amount);
         return true;
     }
@@ -180,7 +176,6 @@ contract ICOBooster is Ownable {
         uint256 _tokens = calculateTokens(campaignId, msg.sender);
         c.balances[msg.sender] = 0;
         c.tokens[msg.sender] = c.tokens[msg.sender].add(_tokens);
-        /////
         campaigns[campaignId].token.transfer(msg.sender, _tokens);
     }
 
