@@ -63,7 +63,13 @@ contract ICOBooster is Ownable {
 
     event LogNewCampaign(uint256 indexed campaignId, uint256 index, uint256 startTime, uint256 endTime, uint256 minInvestment, uint256 cap, uint256 hardCap, address crowdSaleAddress, address tokenContactAddress);
 
-    event LogInvestment(uint campaignId, address indexed funder, uint256 value);
+    event LogInvestment(uint indexed campaignId, address indexed funder, uint256 value);
+
+    event LogClosed(uint256 campaignId);
+
+    event LogRefundingEnabled(uint256 indexed campaignId);
+
+    event LogRefunded(uint256 indexed campaignId, address indexed funder);
 
     function ICOBooster(address _owner) public
     {
@@ -71,14 +77,13 @@ contract ICOBooster is Ownable {
         owner = _owner;
     }
 
-    function newCampaign(uint256 _campaignId, uint256 _startTime, uint256 _endTime, uint256 _minInvestment, uint256 _cap, uint256 _hardCap, uint256 _oneAddressLimit, address _wallet, address _crowdSaleAddress, address _tokenAddress) public onlyOwner returns(uint index) {
+    function newCampaign(uint256 _campaignId, uint256 _startTime, uint256 _endTime, uint256 _minInvestment, uint256 _cap, uint256 _hardCap, uint256 _oneAddressLimit,  address _crowdSaleAddress, address _tokenAddress) public onlyOwner returns(uint index) {
         require(_startTime > now + 10 minutes);
         require(_endTime > _startTime);
         require(_minInvestment > 0);
         require(_cap > _minInvestment);
         require(_hardCap >= _cap);
         require(_crowdSaleAddress != address(0));
-        require(_wallet != address(0));
 
         campaigns[_campaignId].startTime = _startTime;
         campaigns[_campaignId].endTime = _endTime;
@@ -89,7 +94,7 @@ contract ICOBooster is Ownable {
         campaigns[_campaignId].token = ERC20(_tokenAddress);
         campaigns[_campaignId].state = State.Active;
         campaigns[_campaignId].weiRaised = 0;
-        campaigns[_campaignId].wallet = new RefundVault(_wallet);
+        campaigns[_campaignId].wallet = new RefundVault(this);
         campaigns[_campaignId].oneAddressLimit = _oneAddressLimit;
 
         campaigns[_campaignId].index = campaignIndex.push(_campaignId) - 1;
@@ -143,13 +148,15 @@ contract ICOBooster is Ownable {
 
     function checkGoalReached(uint campaignId) public returns(bool reached) {
         Campaign storage c = campaigns[campaignId];
+        require(c.state != State.Closed);
         if (c.weiRaised < c.cap)
         return false;
         uint amount = c.weiRaised;
-        c.weiRaised = 0;
+        c.wallet.close();
         c.beneficiary.transfer(amount);
         c.tokensBought = c.token.balanceOf(this);
         c.state = State.Closed;
+        LogClosed(campaignId);
         return true;
     }
 
@@ -177,8 +184,10 @@ contract ICOBooster is Ownable {
         if (c.state == State.Active) {
             c.wallet.enableRefunds();
             c.state = State.Refunding;
+            LogRefundingEnabled(campaignId);
         }
         c.wallet.refund(msg.sender);
+        LogRefunded(campaignId, msg.sender);
     }
 
     function updateStartTime(uint256 campaignId, uint256 _startTime) public onlyOwner {
