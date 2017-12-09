@@ -149,11 +149,13 @@ contract ICOBooster is Ownable {
         c.weiRaised = 0;
         c.beneficiary.transfer(amount);
         c.tokensBought = c.token.balanceOf(this);
+        c.state = State.Closed;
         return true;
     }
 
     function getTokens(uint256 campaignId) public returns(bool) {
         Campaign storage c = campaigns[campaignId];
+        require(c.state == State.Closed);
         require(c.balances[msg.sender] > 0);
         uint256 _tokens = calculateTokens(campaignId, msg.sender);
         c.balances[msg.sender] = 0;
@@ -172,6 +174,10 @@ contract ICOBooster is Ownable {
         Campaign storage c = campaigns[campaignId];
         require(hasEnded(campaignId));
         require(c.weiRaised < c.cap);
+        if (c.state == State.Active) {
+            c.wallet.enableRefunds();
+            c.state = State.Refunding;
+        }
         c.wallet.refund(msg.sender);
     }
 
