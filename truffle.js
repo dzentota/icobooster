@@ -1,26 +1,14 @@
-require('babel-register');
-require('babel-polyfill');
-const Provider = require('./helpers/Provider');
-const ProviderRopsten = Provider.createRopstenNetwork("type here your private key from owner address");
-const ProviderMain = Provider.createMainNetwork("type here your private key from owner address");
-const ProviderTestRpc = Provider.createTestRpcNetwork("type here your private key from owner address");
+var HDWalletProvider = require("truffle-hdwallet-provider");
+var mnemonic = "transfer erosion hunt round betray unique fatigue beauty twice bless around echo";
 
 module.exports = {
+    // Deploy to Ropten using infura
     networks: {
-        ropsten: ProviderRopsten.getNetwork(),
-        mainnet: ProviderMain.getNetwork(),
-        testrpc: ProviderTestRpc.getNetwork(),
-        development: {
-            host: "localhost",
-            port: 8545,
-            network_id: "*",
-            gas: 6000000
-        },
-        coverage: {
-            host: "localhost",
-            port: 8555,
-            network_id: "*",
-            gas: 0xffffffff
+        ropsten: {
+            provider: function() {
+                return new HDWalletProvider(mnemonic, "https://ropsten.infura.io/2t9moYtXJAAKeyV0BTng")
+            },
+            network_id: 3
         }
     }
 };
