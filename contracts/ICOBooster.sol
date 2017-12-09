@@ -37,7 +37,7 @@ contract ICOBooster is Ownable {
     //minimal investment in Wei
     uint minInvestment;
     // Address where funds are collected
-    address wallet;
+    RefundVault wallet;
     //how much money can be payed from one address (could be set by ICO)
     uint256 oneAddressLimit;
     // raised in wei
@@ -144,7 +144,7 @@ contract ICOBooster is Ownable {
         bool withinPeriod = now >= campaigns[campaignId].startTime && now <= campaigns[campaignId].endTime;
         bool nonZeroPurchase = msg.value != 0;
         bool greaterThanMinInvestment = msg.value > campaigns[campaignId].minInvestment;
-        bool withinHardCap = campaigns[campaignId].add(msg.value) <= campaigns[campaignId].hardCap;
+        bool withinHardCap = campaigns[campaignId].weiRaised.add(msg.value) <= campaigns[campaignId].hardCap;
         return withinPeriod && nonZeroPurchase && greaterThanMinInvestment && withinHardCap;
     }
 
@@ -177,11 +177,11 @@ contract ICOBooster is Ownable {
     function getTokens(uint256 campaignId) public returns(bool) {
         Campaign storage c = campaigns[campaignId];
         require(c.balances[msg.sender] > 0);
-        uint256 tokens = calculateTokens(campaignId, msg.sender);
+        uint256 _tokens = calculateTokens(campaignId, msg.sender);
         c.balances[msg.sender] = 0;
-        c.tokens = c.tokens.add(tokens);
+        c.tokens[msg.sender] = c.tokens[msg.sender].add(_tokens);
         /////
-        campaigns[campaignId].token.transfer(msg.sender, tokens);
+        campaigns[campaignId].token.transfer(msg.sender, _tokens);
     }
 
     function calculateTokens(uint256 campaignId, address funder) internal returns(uint256 tokens)
