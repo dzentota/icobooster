@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
-import "./crowdsale/CappedCrowdsale.sol";
-import "./crowdsale/RefundableCrowdsale.sol";
-import "./token/MintableToken.sol";
+import "../crowdsale/CappedCrowdsale.sol";
+import "../crowdsale/RefundableCrowdsale.sol";
+import "../token/MintableToken.sol";
 
 /**
  * @title SampleCrowdsaleToken

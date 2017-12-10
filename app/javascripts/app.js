@@ -101,7 +101,7 @@ window.App = {
         var meta;
         ICOBooster.deployed().then(function(instance) {
             meta = instance;
-            return meta.contribute(campaignId, {from: account, value: 20000});
+            return meta.contribute(campaignId, {from: account, value: 200000000000000000});
         }).then(function() {
             self.setStatus("Transaction complete!");
             self.refreshBalance();
@@ -132,15 +132,16 @@ window.App = {
         });
     },
 
-    updateStartTime: function(campaignId, start) {
+    updateStartTime: function(campaignId) {
         var self = this;
+        var startTime = parseInt(document.getElementById("start").value);
 
         this.setStatus("Initiating transaction... (please wait)");
 
         var meta;
         ICOBooster.deployed().then(function(instance) {
             meta = instance;
-            return meta.updateStartTime(campaignId, start, {from: account});
+            return meta.updateStartTime(campaignId, startTime, {from: account});
         }).then(function() {
             self.setStatus("Transaction complete!");
         }).catch(function(e) {
@@ -149,15 +150,15 @@ window.App = {
         });
     },
 
-    updateEndTime: function(campaignId, end) {
+    updateEndTime: function(campaignId) {
         var self = this;
-
+        var endTime = parseInt(document.getElementById("end").value);
         this.setStatus("Initiating transaction... (please wait)");
 
         var meta;
         ICOBooster.deployed().then(function(instance) {
             meta = instance;
-            return meta.updateEndTime(campaignId, end, {from: account});
+            return meta.updateEndTime(campaignId, endTime, {from: account});
         }).then(function() {
             self.setStatus("Transaction complete!");
         }).catch(function(e) {

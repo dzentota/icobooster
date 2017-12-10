@@ -1,8 +1,8 @@
 pragma solidity ^0.4.4;
 
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "zeppelin-solidity/contracts/token/ERC20.sol";
-import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
+import "./math/SafeMath.sol";
+import "./token/ERC20.sol";
+import "./crowdsale/RefundVault.sol";
 
 /**
 */
@@ -58,7 +58,7 @@ contract ICOBooster is Ownable {
     function campaignExist(uint campaignId) internal constant returns (bool exists)
     {
         if (campaignIndex.length == 0) return false;
-        return (campaigns[campaignId].index == campaignId);
+        return (campaignIndex[campaigns[campaignId].index] == campaignId);
     }
 
     event LogNewCampaign(uint256 indexed campaignId, uint256 index, uint256 startTime, uint256 endTime, uint256 minInvestment, uint256 cap, uint256 hardCap, address crowdSaleAddress, address tokenContactAddress);
@@ -78,7 +78,7 @@ contract ICOBooster is Ownable {
     }
 
     function newCampaign(uint256 _campaignId, uint256 _startTime, uint256 _endTime, uint256 _minInvestment, uint256 _cap, uint256 _hardCap, uint256 _oneAddressLimit,  address _crowdSaleAddress, address _tokenAddress) public onlyOwner returns(uint index) {
-        require(_startTime > now + 10 minutes);
+//        require(_startTime > now + 10 minutes);
         require(_endTime > _startTime);
         require(_minInvestment > 0);
         require(_cap > _minInvestment);
@@ -96,6 +96,7 @@ contract ICOBooster is Ownable {
         campaigns[_campaignId].weiRaised = 0;
         campaigns[_campaignId].wallet = new RefundVault(this);
         campaigns[_campaignId].oneAddressLimit = _oneAddressLimit;
+        
 
         campaigns[_campaignId].index = campaignIndex.push(_campaignId) - 1;
         LogNewCampaign(_campaignId, campaigns[_campaignId].index, _startTime, _endTime, _minInvestment, _cap, _hardCap, _crowdSaleAddress, _tokenAddress);
@@ -103,7 +104,7 @@ contract ICOBooster is Ownable {
         return campaignIndex.length - 1;
     }
 
-    function contribute(uint256 campaignId) external payable returns(bool success) {
+    function contribute(uint256 campaignId) external payable {
         require(campaignExist(campaignId));
         require(validPurchase(campaignId));
         require(campaigns[campaignId].state == State.Active);
@@ -158,12 +159,13 @@ contract ICOBooster is Ownable {
         c.wallet.close();
         c.beneficiary.transfer(amount);
         c.tokensBought = c.token.balanceOf(this);
+//        c.tokensBought = c.token.call(bytes4(sha3("balanceOf(this)")));
         c.state = State.Closed;
         LogClosed(campaignId);
         return true;
     }
 
-    function claimTokens(uint256 campaignId) public returns(bool) {
+    function claimTokens(uint256 campaignId) public {
         Campaign storage c = campaigns[campaignId];
         require(c.state == State.Closed);
         require(c.balances[msg.sender] > 0);
@@ -231,4 +233,7 @@ contract ICOBooster is Ownable {
     function getEndTime(uint256 campaignId) public constant returns(uint256 endTime) {
         return campaigns[campaignId].endTime;
     }
+
+    function () public payable {}
+
 }
