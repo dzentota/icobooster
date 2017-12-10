@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ICO Booster</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./app.js"></script>
+</head>
+<body>
+  <h1>ICO Booster</h1>
+  <h2>Example Campaign</h2>
+  <h3>So far we've raised <span class="black"><span id="balance"></span> Wei</span></h3>
+
+  <br>
+  <fieldset>
+    <legend>Admin panel</legend>
+    <h1>ICO Hoses for homeless pigs</h1>
+    <button id="createCampaign" onclick="App.createCampaign()">Create Campaign</button>
+    <br>
+    <button id="updateStartTime" onclick="App.updateStartTime(1)">Update Start Time</button><input id="start" value="" />
+    <br>
+    <button id="updateEndTime" onclick="App.updateStartTime(1)">Update End Time</button><input id="end" value="" />
+  </fieldset>
+  <br>
+  <button id="campaigns" onclick="App.getCampaignIds()">Get campaign ids</button>
+  <br>
+  <button id="contribute" onclick="App.contribute(1)">Contribute</button>
+  <br><br>
+  <span id="status"></span>
+  <br>
+  <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+</body>
+</html>

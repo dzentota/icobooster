@@ -87,8 +87,8 @@ contract ICOBooster is Ownable {
 
         campaigns[_campaignId].startTime = _startTime;
         campaigns[_campaignId].endTime = _endTime;
-        campaigns[_campaignId].cap = _cap.mul(UNIT);
-        campaigns[_campaignId].hardCap = _hardCap.mul(UNIT);
+        campaigns[_campaignId].cap = _cap * UNIT;
+        campaigns[_campaignId].hardCap = _hardCap * UNIT;
         campaigns[_campaignId].minInvestment = _minInvestment;
         campaigns[_campaignId].beneficiary = _crowdSaleAddress;
         campaigns[_campaignId].token = ERC20(_tokenAddress);
@@ -116,7 +116,6 @@ contract ICOBooster is Ownable {
         if (c.weiRaised.add(weiAmount) > c.hardCap) {
             uint256 diff = c.hardCap.sub(c.weiRaised);
             returnToSender = msg.value.sub(diff);
-            weiAmount = msg.value.sub(returnToSender);
         }
         c.weiRaised = c.weiRaised.add(weiAmount);
 
@@ -137,10 +136,8 @@ contract ICOBooster is Ownable {
         bool withinPeriod = now >= campaigns[campaignId].startTime && now <= campaigns[campaignId].endTime;
         bool nonZeroPurchase = msg.value != 0;
         bool greaterThanMinInvestment = msg.value > campaigns[campaignId].minInvestment;
-//        bool withinHardCap = campaigns[campaignId].weiRaised.add(msg.value) <= campaigns[campaignId].hardCap;
-        return withinPeriod && nonZeroPurchase && greaterThanMinInvestment
-//        && withinHardCap
-        ;
+        bool withinHardCap = campaigns[campaignId].weiRaised.add(msg.value) <= campaigns[campaignId].hardCap;
+        return withinPeriod && nonZeroPurchase && greaterThanMinInvestment && withinHardCap;
     }
 
     // @return true if campaign has ended or cap is reached
@@ -163,7 +160,7 @@ contract ICOBooster is Ownable {
         return true;
     }
 
-    function claimTokens(uint256 campaignId) public returns(bool) {
+    function getTokens(uint256 campaignId) public returns(bool) {
         Campaign storage c = campaigns[campaignId];
         require(c.state == State.Closed);
         require(c.balances[msg.sender] > 0);
@@ -203,32 +200,8 @@ contract ICOBooster is Ownable {
         c.endTime = _endTime;
     }
 
-    function updateCrowdsaleAddress(uint256 campaignId, address _beneficiary) public onlyOwner {
-        Campaign storage c = campaigns[campaignId];
-        c.beneficiary = _beneficiary;
-    }
-
-    function updateTokenAddress(uint256 campaignId, address _token) public onlyOwner
-    {
-        Campaign storage c = campaigns[campaignId];
-        c.token = ERC20(_token);
-    }
-
-    function getWeiRaised(uint256 campaignId) public constant returns(uint256 weiRaised)
+    function getWeiRaised(uint256 campaignId) public returns(uint256 weiRaised)
     {
         return campaigns[campaignId].weiRaised;
-    }
-
-    function getCampaignIds() public constant returns (uint256[])
-    {
-        return campaignIndex;
-    }
-
-    function getStartTime(uint256 campaignId) public constant returns(uint256 startTime) {
-        return campaigns[campaignId].startTime;
-    }
-
-    function getEndTime(uint256 campaignId) public constant returns(uint256 endTime) {
-        return campaigns[campaignId].endTime;
     }
 }
