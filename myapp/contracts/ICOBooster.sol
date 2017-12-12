@@ -110,11 +110,8 @@ contract ICOBooster is Ownable {
         uint256 returnToSender = 0;
 
         Campaign storage c = campaigns[campaignId];
-        // Distribute only the remaining tokens if final contribution exceeds hard cap
-        if (c.weiRaised.add(weiAmount) > c.hardCap) {
-            uint256 diff = c.hardCap.sub(c.weiRaised);
-            returnToSender = msg.value.sub(diff);
-        }
+
+        // add funds to campaign total wei amount
         c.weiRaised = c.weiRaised.add(weiAmount);
 
         // update balance
@@ -123,10 +120,6 @@ contract ICOBooster is Ownable {
         LogInvestment(campaignId, msg.sender, weiAmount);
         // Forward funds
         c.wallet.deposit.value(weiAmount)(msg.sender);
-        // Return funds that are over hard cap
-        if (returnToSender > 0) {
-            msg.sender.transfer(returnToSender);
-        }
     }
 
     // @return true if the transaction can buy tokens
