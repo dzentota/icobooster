@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.19;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
@@ -14,8 +14,6 @@ contract ICOBooster is Ownable {
     uint8 public constant decimals = 18;
 
     uint256 private constant UNIT = 10 ** uint256(decimals);
-
-    address public owner;
 
     enum State {Active, Refunding, Closed}
 
@@ -112,11 +110,8 @@ contract ICOBooster is Ownable {
         uint256 returnToSender = 0;
 
         Campaign storage c = campaigns[campaignId];
-        // Distribute only the remaining tokens if final contribution exceeds hard cap
-        if (c.weiRaised.add(weiAmount) > c.hardCap) {
-            uint256 diff = c.hardCap.sub(c.weiRaised);
-            returnToSender = msg.value.sub(diff);
-        }
+
+        // add funds to campaign total wei amount
         c.weiRaised = c.weiRaised.add(weiAmount);
 
         // update balance
@@ -125,10 +120,6 @@ contract ICOBooster is Ownable {
         LogInvestment(campaignId, msg.sender, weiAmount);
         // Forward funds
         c.wallet.deposit.value(weiAmount)(msg.sender);
-        // Return funds that are over hard cap
-        if (returnToSender > 0) {
-            msg.sender.transfer(returnToSender);
-        }
     }
 
     // @return true if the transaction can buy tokens
@@ -160,7 +151,7 @@ contract ICOBooster is Ownable {
         return true;
     }
 
-    function getTokens(uint256 campaignId) public returns(bool) {
+    function claimTokens(uint256 campaignId) public returns(bool) {
         Campaign storage c = campaigns[campaignId];
         require(c.state == State.Closed);
         require(c.balances[msg.sender] > 0);
