@@ -15,8 +15,6 @@ contract ICOBooster is Ownable {
 
     uint256 private constant UNIT = 10 ** uint256(decimals);
 
-    address public owner;
-
     enum State {Active, Refunding, Closed}
 
     struct Campaign {
