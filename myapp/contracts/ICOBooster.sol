@@ -158,7 +158,7 @@ contract ICOBooster is Ownable {
         return true;
     }
 
-    function getTokens(uint256 campaignId) public returns(bool) {
+    function claimTokens(uint256 campaignId) public returns(bool) {
         Campaign storage c = campaigns[campaignId];
         require(c.state == State.Closed);
         require(c.balances[msg.sender] > 0);
